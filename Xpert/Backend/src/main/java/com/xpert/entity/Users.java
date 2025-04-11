@@ -1,5 +1,6 @@
 package com.xpert.entity;
 
+import com.xpert.converter.EncryptedStringConverter;
 import com.xpert.enums.UserRole;
 import com.xpert.enums.UserStatus;
 import jakarta.persistence.*;
@@ -18,11 +19,14 @@ public class Users {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID id;
 
-    @Column(nullable = false, length = 100, unique = true)
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(nullable = false, length = 255, unique = true)
     private String email;
 
-    @Column(nullable = false, length = 20, unique = true)
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(nullable = false, length = 255, unique = true)
     private String phone;
+
 
     @Column(nullable = false)
     private String passwordHash;
