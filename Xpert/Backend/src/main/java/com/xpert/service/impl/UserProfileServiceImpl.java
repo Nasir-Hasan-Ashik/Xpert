@@ -7,6 +7,7 @@ import com.xpert.entity.Users;
 import com.xpert.repository.UserProfileRepository;
 import com.xpert.repository.UserRepository;
 import com.xpert.service.UserProfileService;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -22,19 +23,20 @@ public class UserProfileServiceImpl implements UserProfileService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private ModelMapper modelMapper;
+
     @Override
     public UserProfileDTO getUserProfile(UUID userId) {
         UserProfile profile = userProfileRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User profile not found"));
-
-        return mapToDTO(profile);
+        return toDTO(profile);
     }
 
     @Override
     public UserProfileDTO updateUserProfile(UUID userId, UpdateUserProfileDTO dto) {
         UserProfile profile = userProfileRepository.findById(userId)
                 .orElseGet(() -> {
-                    // If profile doesn't exist, create new one
                     Users user = userRepository.findById(userId)
                             .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -44,14 +46,10 @@ public class UserProfileServiceImpl implements UserProfileService {
                     return newProfile;
                 });
 
-        profile.setImage(dto.getImage());
-        profile.setDescription(dto.getDescription());
-        profile.setExperiencesInShort(dto.getExperiencesInShort());
-        profile.setCv(dto.getCv());
-        profile.setCompletedWorks(dto.getCompletedWorks());
+        modelMapper.map(dto, profile);  // Apply updates from DTO to existing entity
 
         UserProfile saved = userProfileRepository.save(profile);
-        return mapToDTO(saved);
+        return toDTO(saved);
     }
 
     @Override
@@ -70,15 +68,7 @@ public class UserProfileServiceImpl implements UserProfileService {
         return notifications;
     }
 
-    private UserProfileDTO mapToDTO(UserProfile profile) {
-        return new UserProfileDTO(
-                profile.getUserId(),
-                profile.getImage(),
-                profile.getDescription(),
-                profile.getExperiencesInShort(),
-                profile.getCv(),
-                profile.getCompletedWorks(),
-                profile.getNotifications()
-        );
+    private UserProfileDTO toDTO(UserProfile profile) {
+        return modelMapper.map(profile, UserProfileDTO.class);
     }
 }
