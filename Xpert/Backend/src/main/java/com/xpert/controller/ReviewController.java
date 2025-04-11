@@ -1,6 +1,6 @@
 package com.xpert.controller;
 
-import com.xpert.dto.ReviewRequestDTO;
+import com.xpert.dto.review.ReviewRequestDTO;
 import com.xpert.service.ReviewService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
