@@ -68,13 +68,13 @@ public class EncryptionUtil {
         }
     }
     
-    public boolean isEncrypted(String value) {
-        try {
-            decrypt(value);  // Try decrypting
-            return true;
-        } catch (Exception e) {
-            return false;    // If it fails, it's not encrypted
-        }
-    }
+//    public boolean isEncrypted(String value) {
+//        try {
+//            decrypt(value);  // Try decrypting
+//            return true;
+//        } catch (Exception e) {
+//            return false;    // If it fails, it's not encrypted
+//        }
+//    }
 
 }
