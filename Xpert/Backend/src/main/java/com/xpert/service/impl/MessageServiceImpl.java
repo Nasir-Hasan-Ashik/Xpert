@@ -11,6 +11,7 @@ import com.xpert.repository.ChatAttachmentRepository;
 import com.xpert.repository.ChatMessageRepository;
 import com.xpert.repository.ChatRepository;
 import com.xpert.service.MessageService;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -31,12 +32,14 @@ public class MessageServiceImpl implements MessageService {
     @Autowired
     private ChatAttachmentRepository chatAttachmentRepository;
 
+    @Autowired
+    private ModelMapper modelMapper;
+
     @Override
     public ChatMessageDTO sendMessage(SendMessageRequestDTO dto) {
         Chat chat = chatRepository.findById(dto.getChatId())
                 .orElseThrow(() -> new IllegalArgumentException("Chat not found"));
 
-        // Create and save message
         ChatMessage message = new ChatMessage();
         message.setChat(chat);
         message.setSenderId(dto.getSenderId());
@@ -46,7 +49,6 @@ public class MessageServiceImpl implements MessageService {
 
         ChatMessage savedMessage = chatMessageRepository.save(message);
 
-        // Save attachments (if any)
         List<ChatAttachment> savedAttachments = Collections.emptyList();
         if (dto.getAttachmentUrls() != null && !dto.getAttachmentUrls().isEmpty()) {
             savedAttachments = dto.getAttachmentUrls().stream()
@@ -55,45 +57,32 @@ public class MessageServiceImpl implements MessageService {
             chatAttachmentRepository.saveAll(savedAttachments);
         }
 
-        // Update chat's last message timestamp
         chat.setLastMessageAt(savedMessage.getCreatedAt());
         chatRepository.save(chat);
 
-        // Return DTO
         List<ChatAttachmentDTO> attachmentDTOs = savedAttachments.stream()
-                .map(att -> new ChatAttachmentDTO(att.getFileUrl(), att.getFileName(), att.getContentType()))
+                .map(att -> modelMapper.map(att, ChatAttachmentDTO.class))
                 .collect(Collectors.toList());
 
-        return new ChatMessageDTO(
-                savedMessage.getId(),
-                chat.getId(),
-                savedMessage.getSenderId(),
-                savedMessage.getContent(),
-                savedMessage.getCreatedAt(),
-                savedMessage.getStatus(),
-                attachmentDTOs
-        );
+        ChatMessageDTO response = modelMapper.map(savedMessage, ChatMessageDTO.class);
+        response.setAttachments(attachmentDTOs);
+        return response;
     }
 
     @Override
     public List<ChatMessageDTO> getMessagesByChatId(Long chatId) {
         return chatMessageRepository.findByChatIdOrderByCreatedAtAsc(chatId).stream()
                 .map(msg -> {
+                    ChatMessageDTO dto = modelMapper.map(msg, ChatMessageDTO.class);
+
                     List<ChatAttachmentDTO> attachmentDTOs = msg.getAttachments() != null
                             ? msg.getAttachments().stream()
-                                .map(att -> new ChatAttachmentDTO(att.getFileUrl(), att.getFileName(), att.getContentType()))
-                                .collect(Collectors.toList())
+                            .map(att -> modelMapper.map(att, ChatAttachmentDTO.class))
+                            .collect(Collectors.toList())
                             : Collections.emptyList();
 
-                    return new ChatMessageDTO(
-                            msg.getId(),
-                            msg.getChat().getId(),
-                            msg.getSenderId(),
-                            msg.getContent(),
-                            msg.getCreatedAt(),
-                            msg.getStatus(),
-                            attachmentDTOs
-                    );
+                    dto.setAttachments(attachmentDTOs);
+                    return dto;
                 }).collect(Collectors.toList());
     }
 }
